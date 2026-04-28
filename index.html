@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1a1a1a">
+  <meta name="description" content="Aplicación para reservar salas y espacios">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Salas">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>Salas — Reservas</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ===== LOGIN ===== -->
+<div id="login-screen" class="app">
+  <div class="login-wrap">
+    <div class="login-title">Salas</div>
+    <div class="login-sub">Accede a tu cuenta para continuar</div>
+    <div class="slabel">Acceso rápido</div>
+    <div class="user-picker" id="quick-users"></div>
+    <div class="div-line">o ingresa tus datos</div>
+    <div class="lf"><label>Correo</label><input type="email" id="l-email" placeholder="correo@empresa.com"></div>
+    <div class="lf"><label>Contraseña</label><input type="password" id="l-pass" placeholder="••••••"></div>
+    <div class="lerr hidden" id="l-err">Correo o contraseña incorrectos</div>
+    <button class="lbtn" onclick="doLogin()">Iniciar sesión</button>
+  </div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div id="main-screen" class="hidden app">
+
+  <div class="top-bar">
+    <span class="logo">Salas</span>
+    <div class="user-chip">
+      <div>
+        <div class="uname" id="h-name"></div>
+        <div class="urole" id="h-role"></div>
+      </div>
+      <div class="avatar" id="h-avatar"></div>
+      <button class="logout-btn" onclick="doLogout()">Salir</button>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs-bar"></div>
+
+  <!-- Tab: Nueva reserva -->
+  <div id="panel-reservar" class="panel">
+    <div class="slabel">Elige una sala</div>
+    <div class="rooms-grid" id="rooms-grid"></div>
+    <div class="fcard">
+      <div class="slabel" style="margin-bottom:14px;">Datos de la reserva</div>
+      <div class="frow">
+        <div class="field"><label>Nombre</label><input type="text" id="f-name" placeholder="Tu nombre"></div>
+        <div class="field"><label>Correo</label><input type="email" id="f-email" placeholder="correo@empresa.com"></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Fecha</label><input type="date" id="f-date"></div>
+        <div class="field"><label>Asistentes</label><input type="number" id="f-att" min="1" max="30" placeholder="Nº personas"></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Hora inicio</label><input type="time" id="f-start" value="09:00"></div>
+        <div class="field"><label>Hora fin</label><input type="time" id="f-end" value="10:00"></div>
+      </div>
+      <div class="frow full">
+        <div class="field"><label>Motivo (opcional)</label><textarea id="f-notes" placeholder="Ej. Reunión de equipo, presentación..."></textarea></div>
+      </div>
+      <button class="sbtn" onclick="submitRes()">Reservar sala</button>
+    </div>
+  </div>
+
+  <!-- Tab: Mis reservas -->
+  <div id="panel-misres" class="panel">
+    <div class="slabel">Mis reservas</div>
+    <div id="my-res-list"></div>
+  </div>
+
+  <!-- Tab: Panel admin -->
+  <div id="panel-admin" class="panel">
+    <div class="slabel">Resumen</div>
+    <div class="stat-grid" id="stat-grid"></div>
+    <div class="slabel">Todas las reservas</div>
+    <div class="tbl-wrap">
+      <table class="atbl">
+        <thead><tr>
+          <th>Sala</th><th>Cliente</th><th>Fecha</th><th>Horario</th><th>Estado</th><th></th>
+        </tr></thead>
+        <tbody id="admin-tbody"></tbody>
+      </table>
+    </div>
+    <div class="slabel">Gestión de salas</div>
+    <div class="rooms-grid" id="admin-rooms"></div>
+  </div>
+
+  <!-- Tab: Usuarios (admin) -->
+  <div id="panel-usuarios" class="panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div class="slabel" style="margin-bottom:0;">Usuarios registrados</div>
+      <button class="add-user-btn" onclick="openCreateUser()">+ Nuevo usuario</button>
+    </div>
+
+    <div id="user-form-wrap" class="hidden">
+      <div class="fcard highlight">
+        <div class="modal-hdr">
+          <div class="modal-title" id="uf-title">Crear usuario</div>
+          <button class="close-btn" onclick="closeUserForm()">×</button>
+        </div>
+        <div class="frow">
+          <div class="field"><label>Nombre completo</label><input type="text" id="uf-name" placeholder="Nombre Apellido"></div>
+          <div class="field"><label>Correo electrónico</label><input type="email" id="uf-email" placeholder="correo@empresa.com"></div>
+        </div>
+        <div class="frow">
+          <div class="field"><label>Contraseña</label><input type="password" id="uf-pass" placeholder="Mínimo 6 caracteres"></div>
+          <div class="field"><label>Rol</label>
+            <select id="uf-role">
+              <option value="customer">Cliente</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
+        </div>
+        <div class="err hidden" id="uf-err"></div>
+        <div style="display:flex;gap:10px;margin-top:4px;">
+          <button class="sbtn" id="uf-submit-btn" onclick="saveUser()" style="flex:1;">Guardar usuario</button>
+          <button onclick="closeUserForm()" class="cancel-form-btn">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="atbl">
+        <thead><tr>
+          <th style="width:26%;">Nombre</th>
+          <th style="width:30%;">Correo</th>
+          <th style="width:14%;">Rol</th>
+          <th style="width:10%;">Reservas</th>
+          <th style="width:20%;"></th>
+        </tr></thead>
+        <tbody id="users-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
