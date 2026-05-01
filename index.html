@@ -4,50 +4,295 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#1a1a1a">
-  <meta name="description" content="Aplicación para reservar salas y espacios">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Salas">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <title>Salas — Reservas</title>
   <link rel="stylesheet" href="css/styles.css">
+  <style>
+    /* ---- Loading ---- */
+    #loading-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.18);
+      display: flex; align-items: center; justify-content: center; z-index: 999;
+    }
+    #loading-overlay.hidden { display: none; }
+    .spinner {
+      width: 32px; height: 32px; border: 3px solid #e0e0e0;
+      border-top-color: #1a1a1a; border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---- Navbar ---- */
+    .navbar {
+      position: sticky; top: 0; z-index: 90;
+      background: #1a1a1a;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 1.5rem; height: 56px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    }
+    .navbar-brand {
+      font-size: 17px; font-weight: 700; color: #fff;
+      display: flex; align-items: center; gap: 8px; cursor: pointer;
+    }
+    .brand-dot { width: 8px; height: 8px; border-radius: 50%; background: #378ADD; }
+    .navbar-links { display: flex; align-items: center; gap: 4px; }
+    .nav-link {
+      font-size: 13px; color: rgba(255,255,255,0.6);
+      background: none; border: none; cursor: pointer;
+      padding: 6px 12px; border-radius: 8px;
+      transition: background 0.15s, color 0.15s; white-space: nowrap;
+    }
+    .nav-link:hover  { background: rgba(255,255,255,0.1); color: #fff; }
+    .nav-link.active { background: rgba(255,255,255,0.14); color: #fff; font-weight: 500; }
+    .nav-login-btn {
+      font-size: 13px; font-weight: 600; color: #1a1a1a;
+      background: #fff; border: none; cursor: pointer;
+      padding: 7px 16px; border-radius: 8px; margin-left: 8px;
+      transition: opacity 0.15s;
+    }
+    .nav-login-btn:hover { opacity: 0.88; }
+    .nav-user-chip { display: flex; align-items: center; gap: 8px; margin-left: 8px; }
+    .nav-avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      font-size: 11px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .nav-uname  { font-size: 13px; color: #fff; font-weight: 500; }
+    .nav-logout {
+      font-size: 12px; color: rgba(255,255,255,0.55);
+      background: none; border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 7px; padding: 4px 10px; cursor: pointer;
+    }
+    .nav-logout:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+    /* ---- Home screen ---- */
+    #home-screen { min-height: calc(100vh - 56px); }
+
+    .hero {
+      background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+      color: #fff; padding: 5rem 1.5rem 4rem;
+      display: flex; flex-direction: column; align-items: center; text-align: center;
+    }
+    .hero-badge {
+      display: inline-block; font-size: 11px; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      background: rgba(55,138,221,0.22); color: #7bbfff;
+      padding: 4px 14px; border-radius: 20px; margin-bottom: 1.25rem;
+      border: 1px solid rgba(55,138,221,0.3);
+    }
+    .hero h1 {
+      font-size: clamp(1.8rem, 5vw, 3rem); font-weight: 700;
+      line-height: 1.15; margin-bottom: 1rem; max-width: 600px;
+    }
+    .hero h1 span { color: #7bbfff; }
+    .hero p {
+      font-size: 15px; color: rgba(255,255,255,0.58);
+      max-width: 460px; line-height: 1.65; margin-bottom: 2rem;
+    }
+    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+    .hero-btn-primary {
+      font-size: 14px; font-weight: 600; color: #1a1a1a;
+      background: #fff; border: none; cursor: pointer;
+      padding: 12px 28px; border-radius: 10px; transition: opacity 0.15s;
+    }
+    .hero-btn-primary:hover { opacity: 0.9; }
+    .hero-btn-secondary {
+      font-size: 14px; font-weight: 500; color: #fff;
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      cursor: pointer; padding: 12px 28px; border-radius: 10px; transition: background 0.15s;
+    }
+    .hero-btn-secondary:hover { background: rgba(255,255,255,0.18); }
+
+    /* ---- Features ---- */
+    .features-section { background: #f5f5f3; padding: 4rem 1.5rem; }
+    .section-header   { text-align: center; margin-bottom: 2.5rem; }
+    .section-tag {
+      font-size: 11px; font-weight: 600; color: #378ADD;
+      letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px;
+    }
+    .section-title { font-size: clamp(1.3rem, 3vw, 1.9rem); font-weight: 700; color: #1a1a1a; }
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 14px; max-width: 860px; margin: 0 auto;
+    }
+    .feat-card {
+      background: #fff; border: 1px solid #e8e8e8; border-radius: 14px; padding: 1.4rem;
+    }
+    .feat-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; margin-bottom: 12px;
+    }
+    .feat-title { font-size: 14px; font-weight: 600; color: #1a1a1a; margin-bottom: 6px; }
+    .feat-desc  { font-size: 13px; color: #888; line-height: 1.55; }
+
+    /* ---- Rooms preview ---- */
+    .rooms-section {
+      background: #fff; padding: 4rem 1.5rem; border-top: 1px solid #f0f0f0;
+    }
+    .rooms-preview-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+      gap: 12px; max-width: 860px; margin: 0 auto;
+    }
+    .room-preview-card {
+      border: 1px solid #e8e8e8; border-radius: 14px; padding: 1.25rem;
+    }
+    .rp-icon { font-size: 22px; margin-bottom: 6px; }
+    .rp-name { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+    .rp-cap  { font-size: 12px; color: #888; margin-top: 2px; }
+    .rp-bar  { height: 3px; border-radius: 2px; margin-top: 10px; }
+
+    /* ---- CTA ---- */
+    .cta-section { background: #1a1a1a; padding: 4rem 1.5rem; text-align: center; }
+    .cta-section h2 { font-size: 1.75rem; font-weight: 700; color: #fff; margin-bottom: 10px; }
+    .cta-section p  { font-size: 15px; color: rgba(255,255,255,0.5); margin-bottom: 1.75rem; }
+
+    /* ---- Footer ---- */
+    .footer {
+      background: #111; padding: 1.25rem 1.5rem;
+      text-align: center; font-size: 12px; color: rgba(255,255,255,0.3);
+    }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 520px) {
+      .navbar-links .nav-link:not(.always) { display: none; }
+      .hero { padding: 3rem 1rem 2.5rem; }
+    }
+  </style>
 </head>
 <body>
 
-<!-- ===== LOGIN ===== -->
-<div id="login-screen" class="app">
+<div id="loading-overlay" class="hidden"><div class="spinner"></div></div>
+
+<!-- ===================== NAVBAR ===================== -->
+<nav class="navbar">
+  <div class="navbar-brand" onclick="showScreen('home')">
+    <span class="brand-dot"></span> Salas
+  </div>
+  <div class="navbar-links">
+    <button class="nav-link active" id="nl-inicio"    onclick="navTo('home')">Inicio</button>
+    <button class="nav-link"        id="nl-funciones" onclick="navTo('features')">Funciones</button>
+    <button class="nav-link"        id="nl-salas"     onclick="navTo('rooms')">Salas</button>
+
+    <!-- Sin sesión -->
+    <button class="nav-login-btn" id="nav-login-btn" onclick="showScreen('login')">
+      Iniciar sesión
+    </button>
+
+    <!-- Con sesión -->
+    <div class="nav-user-chip hidden" id="nav-user-chip">
+      <div class="nav-avatar av-admin" id="nav-avatar"></div>
+      <span class="nav-uname" id="nav-uname"></span>
+      <button class="nav-logout" onclick="doLogout()">Salir</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ===================== HOME ===================== -->
+<div id="home-screen">
+
+  <section class="hero" id="section-home">
+    <div class="hero-badge">Sistema de reservas</div>
+    <h1>Gestiona tus <span>salas y espacios</span><br>sin complicaciones</h1>
+    <p>Reserva en segundos, visualiza disponibilidad en tiempo real y administra todo desde un solo lugar.</p>
+    <div class="hero-actions">
+      <button class="hero-btn-primary"   onclick="showScreen('login')">Reservar ahora</button>
+      <button class="hero-btn-secondary" onclick="navTo('features')">Ver funciones</button>
+    </div>
+  </section>
+
+  <section class="features-section" id="section-features">
+    <div class="section-header">
+      <div class="section-tag">¿Por qué elegirnos?</div>
+      <div class="section-title">Todo lo que necesitas en un solo lugar</div>
+    </div>
+    <div class="features-grid">
+      <div class="feat-card">
+        <div class="feat-icon" style="background:#E6F1FB;">📅</div>
+        <div class="feat-title">Reservas en segundos</div>
+        <div class="feat-desc">Selecciona sala, elige horario y confirma. Sin llamadas ni formularios complicados.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon" style="background:#E1F5EE;">✅</div>
+        <div class="feat-title">Disponibilidad en tiempo real</div>
+        <div class="feat-desc">Ve al instante qué salas están libres u ocupadas antes de reservar.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon" style="background:#EEEDFE;">👤</div>
+        <div class="feat-title">Roles y permisos</div>
+        <div class="feat-desc">Admins con control total. Clientes con acceso solo a sus reservas.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon" style="background:#FEF3E2;">📊</div>
+        <div class="feat-title">Panel de administración</div>
+        <div class="feat-desc">Estadísticas, gestión de usuarios y control de salas centralizado.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="rooms-section" id="section-rooms">
+    <div class="section-header">
+      <div class="section-tag">Nuestros espacios</div>
+      <div class="section-title">Salas disponibles</div>
+    </div>
+    <div class="rooms-preview-grid">
+      <div class="room-preview-card">
+        <div class="rp-icon">▣</div>
+        <div class="rp-name">Sala Norte</div>
+        <div class="rp-cap">Hasta 8 personas</div>
+        <div class="rp-bar" style="background:#378ADD;"></div>
+      </div>
+      <div class="room-preview-card">
+        <div class="rp-icon">◆</div>
+        <div class="rp-name">Sala Sur</div>
+        <div class="rp-cap">Hasta 12 personas</div>
+        <div class="rp-bar" style="background:#1D9E75;"></div>
+      </div>
+      <div class="room-preview-card">
+        <div class="rp-icon">◉</div>
+        <div class="rp-name">Sala Cúpula</div>
+        <div class="rp-cap">Hasta 20 personas</div>
+        <div class="rp-bar" style="background:#7F77DD;"></div>
+      </div>
+      <div class="room-preview-card">
+        <div class="rp-icon">◈</div>
+        <div class="rp-name">Sala Zen</div>
+        <div class="rp-cap">Hasta 4 personas</div>
+        <div class="rp-bar" style="background:#BA7517;"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <h2>¿Listo para empezar?</h2>
+    <p>Inicia sesión y haz tu primera reserva en menos de un minuto.</p>
+    <button class="hero-btn-primary" onclick="showScreen('login')">Iniciar sesión</button>
+  </section>
+
+  <footer class="footer">© 2026 Salas — Sistema de reservas de espacios</footer>
+</div>
+
+<!-- ===================== LOGIN ===================== -->
+<div id="login-screen" class="hidden app">
   <div class="login-wrap">
-    <div class="login-title">Salas</div>
-    <div class="login-sub">Accede a tu cuenta para continuar</div>
-    <div class="slabel">Acceso rápido</div>
-    <div class="user-picker" id="quick-users"></div>
-    <div class="div-line">o ingresa tus datos</div>
+    <div class="login-title">Bienvenido</div>
+    <div class="login-sub">Ingresa tus datos para continuar</div>
     <div class="lf"><label>Correo</label><input type="email" id="l-email" placeholder="correo@empresa.com"></div>
     <div class="lf"><label>Contraseña</label><input type="password" id="l-pass" placeholder="••••••"></div>
     <div class="lerr hidden" id="l-err">Correo o contraseña incorrectos</div>
     <button class="lbtn" onclick="doLogin()">Iniciar sesión</button>
+    <p style="text-align:center;margin-top:14px;">
+      <button onclick="showScreen('home')" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:13px;">← Volver al inicio</button>
+    </p>
   </div>
 </div>
 
-<!-- ===== MAIN APP ===== -->
+<!-- ===================== MAIN APP ===================== -->
 <div id="main-screen" class="hidden app">
+  <div class="tabs" id="tabs-bar" style="margin-top:1rem;"></div>
 
-  <div class="top-bar">
-    <span class="logo">Salas</span>
-    <div class="user-chip">
-      <div>
-        <div class="uname" id="h-name"></div>
-        <div class="urole" id="h-role"></div>
-      </div>
-      <div class="avatar" id="h-avatar"></div>
-      <button class="logout-btn" onclick="doLogout()">Salir</button>
-    </div>
-  </div>
-
-  <div class="tabs" id="tabs-bar"></div>
-
-  <!-- Tab: Nueva reserva -->
   <div id="panel-reservar" class="panel">
     <div class="slabel">Elige una sala</div>
     <div class="rooms-grid" id="rooms-grid"></div>
@@ -66,28 +311,24 @@
         <div class="field"><label>Hora fin</label><input type="time" id="f-end" value="10:00"></div>
       </div>
       <div class="frow full">
-        <div class="field"><label>Motivo (opcional)</label><textarea id="f-notes" placeholder="Ej. Reunión de equipo, presentación..."></textarea></div>
+        <div class="field"><label>Motivo (opcional)</label><textarea id="f-notes" placeholder="Ej. Reunión de equipo..."></textarea></div>
       </div>
       <button class="sbtn" onclick="submitRes()">Reservar sala</button>
     </div>
   </div>
 
-  <!-- Tab: Mis reservas -->
   <div id="panel-misres" class="panel">
     <div class="slabel">Mis reservas</div>
     <div id="my-res-list"></div>
   </div>
 
-  <!-- Tab: Panel admin -->
   <div id="panel-admin" class="panel">
     <div class="slabel">Resumen</div>
     <div class="stat-grid" id="stat-grid"></div>
     <div class="slabel">Todas las reservas</div>
     <div class="tbl-wrap">
       <table class="atbl">
-        <thead><tr>
-          <th>Sala</th><th>Cliente</th><th>Fecha</th><th>Horario</th><th>Estado</th><th></th>
-        </tr></thead>
+        <thead><tr><th>Sala</th><th>Cliente</th><th>Fecha</th><th>Horario</th><th>Estado</th><th></th></tr></thead>
         <tbody id="admin-tbody"></tbody>
       </table>
     </div>
@@ -95,13 +336,11 @@
     <div class="rooms-grid" id="admin-rooms"></div>
   </div>
 
-  <!-- Tab: Usuarios (admin) -->
   <div id="panel-usuarios" class="panel">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
       <div class="slabel" style="margin-bottom:0;">Usuarios registrados</div>
       <button class="add-user-btn" onclick="openCreateUser()">+ Nuevo usuario</button>
     </div>
-
     <div id="user-form-wrap" class="hidden">
       <div class="fcard highlight">
         <div class="modal-hdr">
@@ -123,31 +362,25 @@
         </div>
         <div class="err hidden" id="uf-err"></div>
         <div style="display:flex;gap:10px;margin-top:4px;">
-          <button class="sbtn" id="uf-submit-btn" onclick="saveUser()" style="flex:1;">Guardar usuario</button>
+          <button id="uf-submit-btn" class="sbtn" onclick="saveUser()" style="flex:1;">Guardar usuario</button>
           <button onclick="closeUserForm()" class="cancel-form-btn">Cancelar</button>
         </div>
       </div>
     </div>
-
     <div class="tbl-wrap">
       <table class="atbl">
         <thead><tr>
-          <th style="width:26%;">Nombre</th>
-          <th style="width:30%;">Correo</th>
-          <th style="width:14%;">Rol</th>
-          <th style="width:10%;">Reservas</th>
-          <th style="width:20%;"></th>
+          <th style="width:26%;">Nombre</th><th style="width:30%;">Correo</th>
+          <th style="width:14%;">Rol</th><th style="width:10%;">Reservas</th><th style="width:20%;"></th>
         </tr></thead>
         <tbody id="users-tbody"></tbody>
       </table>
     </div>
   </div>
-
 </div>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<script src="js/app.js"></script>
+<script src="js/api.js"></script>
 </body>
 </html>
