@@ -1,5 +1,10 @@
 // ================= CONFIG =================
-const API = "https://app-web-php-pwa-a9b3gedsd5h8hday.mexicocentral-01.azurewebsites.net";
+const API = "https://app-web-php-pwa-a9b3gedsd5h8hday.mexicocentral-01.azurewebsites.net/api/";
+
+// Helper para URLs seguras
+function apiUrl(path) {
+  return API + path;
+}
 
 // ================= ESTADO =================
 let currentUser = null;
@@ -7,12 +12,6 @@ let currentUser = null;
 // ================= UTIL =================
 function $(id) {
   return document.getElementById(id);
-}
-
-// ================= SCROLL NAV =================
-function scrollToSection(section) {
-  const el = document.getElementById("section-" + section);
-  if (el) el.scrollIntoView({ behavior: "smooth" });
 }
 
 // ================= SCREENS =================
@@ -25,6 +24,11 @@ function showScreen(screen) {
 }
 
 // ================= NAV =================
+function scrollToSection(section) {
+  const el = $("section-" + section);
+  if (el) el.scrollIntoView({ behavior: "smooth" });
+}
+
 function navTo(section) {
   scrollToSection(section);
 
@@ -66,9 +70,9 @@ async function doLogin() {
   const password = $("l-pass").value;
 
   try {
-    const res = await fetch(API + "login.php", {
+    const res = await fetch(apiUrl("login.php"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {"Content-Type":"application/json"},
       body: JSON.stringify({ email, password })
     });
 
@@ -139,7 +143,7 @@ function renderTabs() {
 
 // ================= PANEL =================
 function showPanel(panel) {
-  ["reservar", "misres", "admin", "usuarios"].forEach(p => {
+  ["reservar","misres","admin","usuarios"].forEach(p => {
     $("panel-" + p)?.classList.add("hidden");
   });
 
@@ -165,9 +169,9 @@ async function saveUser() {
   const role = $("uf-role").value;
 
   try {
-    const res = await fetch(API + "register.php", {
+    const res = await fetch(apiUrl("register.php"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {"Content-Type":"application/json"},
       body: JSON.stringify({ name, email, password, role })
     });
 
@@ -200,7 +204,7 @@ async function loadUsers() {
   if (!currentUser || currentUser.role !== "admin") return;
 
   try {
-    const res = await fetch(API + "getUsers.php");
+    const res = await fetch(apiUrl("getUsers.php"));
     const users = await res.json();
 
     const tbody = $("users-tbody");
@@ -235,9 +239,9 @@ async function submitRes() {
   };
 
   try {
-    const res = await fetch(API + "reservas.php", {
+    const res = await fetch(apiUrl("reservas.php"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {"Content-Type":"application/json"},
       body: JSON.stringify(data)
     });
 
@@ -259,7 +263,7 @@ async function loadMyReservations() {
   const user = JSON.parse(localStorage.getItem("session"));
 
   try {
-    const res = await fetch(API + `reservas.php?user_id=${user.id}`);
+    const res = await fetch(apiUrl(`reservas.php?user_id=${user.id}`));
     const data = await res.json();
 
     const container = $("my-res-list");
@@ -281,15 +285,14 @@ async function loadMyReservations() {
 // ================= INIT =================
 document.addEventListener("DOMContentLoaded", () => {
 
-  // NAV BOTONES
+  // Navegación
   $("nl-inicio")?.addEventListener("click", () => navTo("home"));
   $("nl-funciones")?.addEventListener("click", () => navTo("features"));
   $("nl-salas")?.addEventListener("click", () => navTo("rooms"));
 
-  // LOGIN BTN
   $("nav-login-btn")?.addEventListener("click", () => showScreen("login"));
 
-  // SESSION
+  // Restaurar sesión
   const session = localStorage.getItem("session");
 
   if (session) {
