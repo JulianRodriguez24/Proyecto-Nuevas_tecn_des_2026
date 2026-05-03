@@ -1,20 +1,52 @@
 <?php
 header("Content-Type: application/json");
-include "db.php";
+
+require_once "db.php";
 
 $data = json_decode(file_get_contents("php://input"), true);
 
-$name = $conn->real_escape_string($data["name"]);
-$email = $conn->real_escape_string($data["email"]);
-$password = $conn->real_escape_string($data["password"]);
-$role = $conn->real_escape_string($data["role"]);
-
-$sql = "INSERT INTO users (name,email,password,role)
-        VALUES ('$name','$email','$password','$role')";
-
-if ($conn->query($sql)) {
-    echo json_encode(["success"=>true]);
-} else {
-    echo json_encode(["success"=>false]);
+if (!$data) {
+    echo json_encode([
+        "success" => false,
+        "error" => "No data received"
+    ]);
+    exit;
 }
-?>
+
+$name = $data["name"] ?? "";
+$email = $data["email"] ?? "";
+$password = $data["password"] ?? "";
+$role = $data["role"] ?? "customer";
+
+if (!$name || !$email || !$password) {
+    echo json_encode([
+        "success" => false,
+        "error" => "Campos incompletos"
+    ]);
+    exit;
+}
+
+try {
+
+    $pdo = Database::connection();
+
+  
+    $hash = password_hash($password, PASSWORD_DEFAULT);
+
+    $sql = "INSERT INTO users (name, email, password, role)
+            VALUES (?, ?, ?, ?)";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$name, $email, $hash, $role]);
+
+    echo json_encode([
+        "success" => true
+    ]);
+
+} catch (PDOException $e) {
+
+    echo json_encode([
+        "success" => false,
+        "error" => $e->getMessage()
+    ]);
+}
