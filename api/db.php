@@ -12,7 +12,7 @@ class Database {
         $password = "Julian20667*";
 
        
-        $ssl_ca = __DIR__ . "/../certs/DigiCertGlobalRootG2.crt.pem";
+        $ssl_ca = __DIR__ . "certs/DigiCertGlobalRootG2.crt.pem";
 
         try {
             $pdo = new PDO(
