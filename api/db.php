@@ -1,49 +1,35 @@
 <?php
+class Database {
 
-    // $host = "localhost";
-    // $user = "root";
-    // $pass = "";
-    // $db = "salas";
+    public static function connection() {
 
-    // $conn = new mysqli($host, $user, $pass, $db);
+        $hostname = "server-admin-pwa.mysql.database.azure.com";
+        $port     = "3306";
+        $database = "salas";
 
-    // if ($conn->connect_error) {
-    // die("Error de conexión");
-    // }
+        
+        $username = "adminphp@server-admin-pwa";
+        $password = "Julian20667*";
 
-    #Conexion Azure
+       
+        $ssl_ca = __DIR__ . "/../certs/DigiCertGlobalRootG2.crt.pem";
 
-    class Database {
+        try {
+            $pdo = new PDO(
+                "mysql:host=$hostname;port=$port;dbname=$database;charset=utf8",
+                $username,
+                $password,
+                [
+                    PDO::MYSQL_ATTR_SSL_CA => $ssl_ca,
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+                ]
+            );
 
-        public static function connection() {
+            return $pdo;
 
-         $hostname = "server-admin-pwa.mysql.database.azure.com";
-            $port     = "3306";
-            $database = "salas";
-           
-         $username = "adminphp@server-admin-pwa";
-         $password = "Julian20667*";
-            
-            $ssl_ca = __DIR__ . "/../certs/DigiCertGlobalRootG2.crt.pem";
-
-            try {
-
-                $pdo = new PDO(
-                    "mysql:host=$hostname;port=$port;dbname=$database;charset=utf8",
-                    $username,
-                    $password,
-                    [
-                        PDO::MYSQL_ATTR_SSL_CA => $ssl_ca,
-                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-                    ]
-                );
-
-                return $pdo;
-
-            } catch (PDOException $e) {
-                die("Error conexión Azure: " . $e->getMessage());
-            }
+        } catch (PDOException $e) {
+            die("Error Azure: " . $e->getMessage());
         }
     }
-?>
+}

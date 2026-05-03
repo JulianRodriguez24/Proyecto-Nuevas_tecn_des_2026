@@ -1,3 +1,4 @@
+const API = "https://app-web-php-pwa-a9b3gedsd5h8hday.mexicocentral-01.azurewebsites.net/api/";
 // ====== ESTADO ======
 let currentUser = null;
 
@@ -49,30 +50,30 @@ function navigate(view) {
   if (active) active.classList.remove("hidden");
 }
 // ====== LOGIN ======
-async function doLogin() {
-  const email = $("l-email").value;
-  const password = $("l-pass").value;
+async function doLogin(){
 
-  const res = await fetch("api/login.php", {
+  const email = document.getElementById("l-email").value;
+  const password = document.getElementById("l-pass").value;
+
+  const res = await fetch(API + "login.php", {
     method: "POST",
     headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({email,password})
   });
 
   const data = await res.json();
 
-  if (!data.success) {
-    $("l-err").classList.remove("hidden");
+  console.log(data);
+
+  if(!data.success){
+    alert("Error login");
     return;
   }
 
   currentUser = data.user;
-  localStorage.setItem("session", JSON.stringify(currentUser));
 
   updateNavbar();
-
   renderTabs();
-
   navigate("main");
 }
 // ====== LOGOUT ======

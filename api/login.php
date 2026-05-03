@@ -1,33 +1,29 @@
 <?php
+require __DIR__ . "/db.php";
+
 header("Content-Type: application/json");
-include "db.php";
 
 $data = json_decode(file_get_contents("php://input"), true);
 
-if (!$data) {
-    echo json_encode(["success"=>false, "error"=>"No data"]);
-    exit;
-}
-
-$email = $conn->real_escape_string($data["email"]);
+$email = $data["email"];
 $password = $data["password"];
 
-$sql = "SELECT * FROM users WHERE email='$email'";
-$result = $conn->query($sql);
+$db = Database::connection();
 
-if ($result && $result->num_rows > 0) {
-    $user = $result->fetch_assoc();
+$stmt = $db->prepare("SELECT * FROM users WHERE email = ?");
+$stmt->execute([$email]);
 
- 
-    if ($user["password"] == $password) {
-        echo json_encode([
-            "success" => true,
-            "user" => $user
-        ]);
-    } else {
-        echo json_encode(["success" => false, "error"=>"Password incorrect"]);
-    }
+$user = $stmt->fetch();
 
+if ($user && $password === $user["password"]) {
+    echo json_encode([
+        "success" => true,
+        "user" => [
+            "name" => $user["name"],
+            "email" => $user["email"],
+            "role" => $user["role"]
+        ]
+    ]);
 } else {
-    echo json_encode(["success" => false, "error"=>"User not found"]);
+    echo json_encode(["success" => false]);
 }
