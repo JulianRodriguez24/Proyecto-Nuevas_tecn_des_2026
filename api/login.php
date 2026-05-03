@@ -1,29 +1,37 @@
 <?php
-require __DIR__ . "/db.php";
+require_once "db.php";
 
 header("Content-Type: application/json");
 
-$data = json_decode(file_get_contents("php://input"), true);
+try {
 
-$email = $data["email"];
-$password = $data["password"];
+    $data = json_decode(file_get_contents("php://input"), true);
 
-$db = Database::connection();
+    $email = $data["email"];
+    $password = $data["password"];
 
-$stmt = $db->prepare("SELECT * FROM users WHERE email = ?");
-$stmt->execute([$email]);
+    $db = Database::connection();
 
-$user = $stmt->fetch();
+    $stmt = $db->prepare("SELECT * FROM users WHERE email = ?");
+    $stmt->execute([$email]);
 
-if ($user && $password === $user["password"]) {
+    $user = $stmt->fetch();
+
+    if ($user && $password === $user["password"]) {
+        echo json_encode([
+            "success" => true,
+            "user" => $user
+        ]);
+    } else {
+        echo json_encode([
+            "success" => false
+        ]);
+    }
+
+} catch (Exception $e) {
+
     echo json_encode([
-        "success" => true,
-        "user" => [
-            "name" => $user["name"],
-            "email" => $user["email"],
-            "role" => $user["role"]
-        ]
+        "success" => false,
+        "error" => $e->getMessage()
     ]);
-} else {
-    echo json_encode(["success" => false]);
 }

@@ -29,7 +29,7 @@ class Database {
             return $pdo;
 
         } catch (PDOException $e) {
-            die("Error Azure: " . $e->getMessage());
+            throw new Exception("Error Azure: " . $e->getMessage());
         }
     }
 }

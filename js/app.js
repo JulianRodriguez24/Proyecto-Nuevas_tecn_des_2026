@@ -1,4 +1,6 @@
 const API = "https://app-web-php-pwa-a9b3gedsd5h8hday.mexicocentral-01.azurewebsites.net/api/";
+const data = await res.json();
+console.log("RESPUESTA:", data);
 // ====== ESTADO ======
 let currentUser = null;
 
