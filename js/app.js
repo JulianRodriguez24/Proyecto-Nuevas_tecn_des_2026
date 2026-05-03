@@ -1,11 +1,6 @@
 // ================= CONFIG =================
 const API = "https://app-web-php-pwa-a9b3gedsd5h8hday.mexicocentral-01.azurewebsites.net/api/";
 
-// Helper para URLs seguras
-function apiUrl(path) {
-  return API + path;
-}
-
 // ================= ESTADO =================
 let currentUser = null;
 
@@ -23,7 +18,7 @@ function showScreen(screen) {
   $(screen + "-screen")?.classList.remove("hidden");
 }
 
-// ================= NAV =================
+// ================= NAV SCROLL =================
 function scrollToSection(section) {
   const el = $("section-" + section);
   if (el) el.scrollIntoView({ behavior: "smooth" });
@@ -32,76 +27,89 @@ function scrollToSection(section) {
 function navTo(section) {
   scrollToSection(section);
 
-  document.querySelectorAll(".nav-link")
-    .forEach(btn => btn.classList.remove("active"));
+  document.querySelectorAll(".nav-link").forEach(btn =>
+    btn.classList.remove("active")
+  );
 
-  if (section === "home") $("nl-inicio")?.classList.add("active");
-  if (section === "features") $("nl-funciones")?.classList.add("active");
-  if (section === "rooms") $("nl-salas")?.classList.add("active");
+  if (section === "home") {
+    $("nl-inicio")?.classList.add("active");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  if (section === "features") {
+    $("nl-funciones")?.classList.add("active");
+  }
+
+  if (section === "rooms") {
+    $("nl-salas")?.classList.add("active");
+  }
+}
+
+// ================= ROUTER =================
+function navigate(view) {
+  ["home", "login", "main"].forEach(v => {
+    $(v + "-screen")?.classList.add("hidden");
+  });
+
+  $(view + "-screen")?.classList.remove("hidden");
 }
 
 // ================= NAVBAR =================
 function updateNavbar() {
   const loginBtn = $("nav-login-btn");
   const userChip = $("nav-user-chip");
-  const uname = $("nav-uname");
-  const avatar = $("nav-avatar");
 
   if (currentUser) {
-    loginBtn.classList.add("hidden");
-    userChip.classList.remove("hidden");
+    loginBtn?.classList.add("hidden");
+    userChip?.classList.remove("hidden");
 
-    uname.textContent = `${currentUser.name} (${currentUser.role})`;
-    avatar.textContent = currentUser.name.charAt(0).toUpperCase();
+    $("nav-uname").textContent = `${currentUser.name} (${currentUser.role})`;
+    $("nav-avatar").textContent = currentUser.name.charAt(0).toUpperCase();
 
-    avatar.classList.remove("av-admin", "av-customer");
-    avatar.classList.add(
+    $("nav-avatar").classList.remove("av-admin", "av-customer");
+    $("nav-avatar").classList.add(
       currentUser.role === "admin" ? "av-admin" : "av-customer"
     );
   } else {
-    loginBtn.classList.remove("hidden");
-    userChip.classList.add("hidden");
+    loginBtn?.classList.remove("hidden");
+    userChip?.classList.add("hidden");
   }
 }
 
 // ================= LOGIN =================
 async function doLogin() {
-  const email = $("l-email").value;
-  const password = $("l-pass").value;
-
   try {
-    const res = await fetch(apiUrl("login.php"), {
+    const email = $("l-email").value;
+    const password = $("l-pass").value;
+
+    const res = await fetch(API + "login.php", {
       method: "POST",
-      headers: {"Content-Type":"application/json"},
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password })
     });
 
     const text = await res.text();
+    console.log("LOGIN RAW:", text);
 
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      console.error("Respuesta no JSON:", text);
-      alert("Error del servidor");
-      return;
-    }
+    const data = JSON.parse(text);
 
     if (!data.success) {
-      alert(data.message || "Credenciales incorrectas");
+      $("l-err").classList.remove("hidden");
       return;
     }
 
     currentUser = data.user;
     localStorage.setItem("session", JSON.stringify(currentUser));
 
+    $("l-err").classList.add("hidden");
+
     updateNavbar();
     renderTabs();
-    showScreen("main");
+    navigate("main");
 
   } catch (err) {
     console.error(err);
-    alert("Error de conexión");
+    alert("Error conectando con el servidor");
   }
 }
 
@@ -135,6 +143,7 @@ function renderTabs() {
     btn.className = "nav-link";
 
     btn.addEventListener("click", () => showPanel(t.id));
+
     tabs.appendChild(btn);
   });
 
@@ -142,15 +151,15 @@ function renderTabs() {
 }
 
 // ================= PANEL =================
-function showPanel(panel) {
-  ["reservar","misres","admin","usuarios"].forEach(p => {
-    $("panel-" + p)?.classList.add("hidden");
+function showPanel(p) {
+  ["reservar", "misres", "admin", "usuarios"].forEach(x => {
+    $("panel-" + x)?.classList.add("hidden");
   });
 
-  $("panel-" + panel)?.classList.remove("hidden");
+  $("panel-" + p)?.classList.remove("hidden");
 
-  if (panel === "misres") loadMyReservations();
-  if (panel === "usuarios") loadUsers();
+  if (p === "misres") loadMyReservations();
+  if (p === "usuarios" && currentUser.role === "admin") loadUsers();
 }
 
 // ================= USUARIOS =================
@@ -163,51 +172,50 @@ function closeUserForm() {
 }
 
 async function saveUser() {
-  const name = $("uf-name").value;
-  const email = $("uf-email").value;
-  const password = $("uf-pass").value;
-  const role = $("uf-role").value;
-
   try {
-    const res = await fetch(apiUrl("register.php"), {
+    const name = $("uf-name").value;
+    const email = $("uf-email").value;
+    const password = $("uf-pass").value;
+    const role = $("uf-role").value;
+
+    const res = await fetch(API + "register.php", {
       method: "POST",
-      headers: {"Content-Type":"application/json"},
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password, role })
     });
 
     const text = await res.text();
+    console.log("REGISTER RAW:", text);
 
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      console.error("Respuesta no JSON:", text);
-      alert("Error del servidor");
-      return;
-    }
+    const data = JSON.parse(text);
 
     if (data.success) {
       alert("Usuario creado");
-      closeUserForm();
       loadUsers();
+      closeUserForm();
     } else {
       alert(data.message || "Error al crear usuario");
     }
 
   } catch (err) {
     console.error(err);
-    alert("Error de conexión");
+    alert("Error del servidor");
   }
 }
 
 async function loadUsers() {
-  if (!currentUser || currentUser.role !== "admin") return;
+  if (currentUser.role !== "admin") return;
 
   try {
-    const res = await fetch(apiUrl("getUsers.php"));
-    const users = await res.json();
+    const res = await fetch(API + "getUsers.php");
+    const text = await res.text();
+    console.log("USERS RAW:", text);
+
+    const users = JSON.parse(text);
 
     const tbody = $("users-tbody");
+    if (!tbody) return;
+
     tbody.innerHTML = "";
 
     users.forEach(u => {
@@ -228,24 +236,27 @@ async function loadUsers() {
 
 // ================= RESERVAS =================
 async function submitRes() {
-  const user = JSON.parse(localStorage.getItem("session"));
-
-  const data = {
-    user_id: user.id,
-    sala: "Sala 1",
-    fecha: $("f-date").value,
-    inicio: $("f-start").value,
-    fin: $("f-end").value
-  };
-
   try {
-    const res = await fetch(apiUrl("reservas.php"), {
+    const user = JSON.parse(localStorage.getItem("session"));
+
+    const data = {
+      user_id: user.id,
+      sala: "Sala 1",
+      fecha: $("f-date").value,
+      inicio: $("f-start").value,
+      fin: $("f-end").value
+    };
+
+    const res = await fetch(API + "reservas.php", {
       method: "POST",
-      headers: {"Content-Type":"application/json"},
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     });
 
-    const r = await res.json();
+    const text = await res.text();
+    console.log("RESERVA RAW:", text);
+
+    const r = JSON.parse(text);
 
     if (r.success) {
       alert("Reserva creada");
@@ -260,11 +271,14 @@ async function submitRes() {
 }
 
 async function loadMyReservations() {
-  const user = JSON.parse(localStorage.getItem("session"));
-
   try {
-    const res = await fetch(apiUrl(`reservas.php?user_id=${user.id}`));
-    const data = await res.json();
+    const user = JSON.parse(localStorage.getItem("session"));
+
+    const res = await fetch(API + `reservas.php?user_id=${user.id}`);
+    const text = await res.text();
+    console.log("MIS RESERVAS:", text);
+
+    const data = JSON.parse(text);
 
     const container = $("my-res-list");
     container.innerHTML = "";
@@ -284,22 +298,13 @@ async function loadMyReservations() {
 
 // ================= INIT =================
 document.addEventListener("DOMContentLoaded", () => {
-
-  // Navegación
-  $("nl-inicio")?.addEventListener("click", () => navTo("home"));
-  $("nl-funciones")?.addEventListener("click", () => navTo("features"));
-  $("nl-salas")?.addEventListener("click", () => navTo("rooms"));
-
-  $("nav-login-btn")?.addEventListener("click", () => showScreen("login"));
-
-  // Restaurar sesión
   const session = localStorage.getItem("session");
 
   if (session) {
     currentUser = JSON.parse(session);
     updateNavbar();
     renderTabs();
-    showScreen("main");
+    navigate("main");
   } else {
     showScreen("home");
   }
