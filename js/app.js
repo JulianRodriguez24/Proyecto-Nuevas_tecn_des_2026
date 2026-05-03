@@ -1,5 +1,5 @@
 // ================= CONFIG =================
-const API = "https://app-web-php-pwa-a9b3gedsd5h8hday.mexicocentral-01.azurewebsites.net/api/";
+const API = "https://app-web-php-pwa-a9b3gedsd5h8hday.mexicocentral-01.azurewebsites.net";
 
 // ================= ESTADO =================
 let currentUser = null;
