@@ -8,7 +8,7 @@ class Database {
         $database = "salas";
 
         
-        $username = "adminphp@server-admin-pwa";
+        $username = "adminphp";
         $password = "Julian20667*";
 
        
