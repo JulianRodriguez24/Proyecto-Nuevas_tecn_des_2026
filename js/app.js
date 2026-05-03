@@ -1,459 +1,267 @@
-/* =============================================
-   SALAS PWA — app.js
-   ============================================= */
+// ====== ESTADO ======
+let currentUser = null;
 
-/* =============================================
-   DATA
-   ============================================= */
-let USERS = [
-  { id: 1, name: 'Admin General',  email: 'admin@salas.com',    pass: 'admin123',  role: 'admin',    initials: 'AG' },
-  { id: 2, name: 'Laura Gómez',    email: 'laura@empresa.com',  pass: 'laura123',  role: 'customer', initials: 'LG' },
-  { id: 3, name: 'Andrés Mora',    email: 'andres@empresa.com', pass: 'andres123', role: 'customer', initials: 'AM' },
-  { id: 4, name: 'Sofía Rincón',   email: 'sofia@empresa.com',  pass: 'sofia123',  role: 'customer', initials: 'SR' },
-];
-let nextUserId = 10;
-let editingUserId = null;
-
-let rooms = [
-  { id: 1, name: 'Sala Norte',  cap: 8,  icon: '▣', color: '#378ADD', busy: false },
-  { id: 2, name: 'Sala Sur',    cap: 12, icon: '◆', color: '#1D9E75', busy: true  },
-  { id: 3, name: 'Sala Cúpula', cap: 20, icon: '◉', color: '#7F77DD', busy: false },
-  { id: 4, name: 'Sala Zen',    cap: 4,  icon: '◈', color: '#BA7517', busy: false },
-];
-
-let reservations = [
-  { id: 101, roomId: 1, room: 'Sala Norte',  color: '#378ADD', userId: 2, userName: 'Laura Gómez',  date: '2026-04-18', start: '10:00', end: '11:30', notes: 'Kick-off proyecto' },
-  { id: 102, roomId: 3, room: 'Sala Cúpula', color: '#7F77DD', userId: 3, userName: 'Andrés Mora',  date: '2026-04-19', start: '14:00', end: '15:00', notes: 'Demo cliente'      },
-  { id: 103, roomId: 4, room: 'Sala Zen',    color: '#BA7517', userId: 4, userName: 'Sofía Rincón', date: '2026-04-20', start: '09:00', end: '10:00', notes: 'Retrospectiva'     },
-];
-
-let currentUser    = null;
-let selectedRoomId = null;
-
-/* =============================================
-   HELPERS
-   ============================================= */
-function getInitials(name) {
-  return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+// ====== UTIL ======
+function $(id) {
+  return document.getElementById(id);
 }
 
-function fmtDate(d) {
-  const [y, m, day] = d.split('-');
-  const ms = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  return parseInt(day) + ' ' + ms[parseInt(m) - 1] + ' ' + y;
+// ====== SCREENS ======
+function showScreen(screen) {
+  $("home-screen").classList.add("hidden");
+  $("login-screen").classList.add("hidden");
+  $("main-screen").classList.add("hidden");
+
+  if (screen === "home") $("home-screen").classList.remove("hidden");
+  if (screen === "login") $("login-screen").classList.remove("hidden");
+  if (screen === "main") $("main-screen").classList.remove("hidden");
 }
 
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
-}
+// ====== NAV ======
+function navTo(section) {
+  document.querySelectorAll(".nav-link").forEach(btn => btn.classList.remove("active"));
 
-/* =============================================
-   LOGIN / LOGOUT
-   ============================================= */
-function renderQuickUsers() {
-  const c = document.getElementById('quick-users');
-  c.innerHTML = USERS.slice(0, 4).map(u => `
-    <button class="upbtn" onclick="quickLogin(${u.id})">
-      <div class="uba ${u.role === 'admin' ? 'av-admin' : 'av-customer'}">${u.initials}</div>
-      <div class="ubn">${u.name.split(' ')[0]}</div>
-      <div class="ubr">${u.role === 'admin' ? 'Admin' : 'Cliente'}</div>
-    </button>
-  `).join('');
-}
-
-function quickLogin(uid) {
-  login(USERS.find(x => x.id === uid));
-}
-
-function doLogin() {
-  const email = document.getElementById('l-email').value.trim();
-  const pass  = document.getElementById('l-pass').value;
-  const u = USERS.find(x => x.email === email && x.pass === pass);
-  if (!u) {
-    document.getElementById('l-err').classList.remove('hidden');
-    return;
-  }
-  document.getElementById('l-err').classList.add('hidden');
-  login(u);
-}
-
-function login(u) {
-  currentUser = u;
-  document.getElementById('login-screen').classList.add('hidden');
-  document.getElementById('main-screen').classList.remove('hidden');
-
-  document.getElementById('h-name').textContent = u.name;
-  document.getElementById('h-role').textContent = u.role === 'admin' ? 'Administrador' : 'Cliente';
-  const av = document.getElementById('h-avatar');
-  av.textContent = u.initials;
-  av.className   = 'avatar ' + (u.role === 'admin' ? 'av-admin' : 'av-customer');
-
-  buildTabs();
-  switchTab(u.role === 'admin' ? 'admin' : 'reservar');
-
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('f-date').value  = today;
-  document.getElementById('f-date').min    = today;
-  document.getElementById('f-name').value  = u.name;
-  document.getElementById('f-email').value = u.email;
-}
-
-function doLogout() {
-  currentUser    = null;
-  selectedRoomId = null;
-  document.getElementById('main-screen').classList.add('hidden');
-  document.getElementById('login-screen').classList.remove('hidden');
-  document.getElementById('l-email').value = '';
-  document.getElementById('l-pass').value  = '';
-  renderQuickUsers();
-}
-
-/* =============================================
-   TABS
-   ============================================= */
-function buildTabs() {
-  const bar = document.getElementById('tabs-bar');
-  if (currentUser.role === 'admin') {
-    bar.innerHTML = `
-      <button class="tab" data-tab="admin"    onclick="switchTab('admin')">Panel</button>
-      <button class="tab" data-tab="usuarios" onclick="switchTab('usuarios')">Usuarios</button>
-      <button class="tab" data-tab="reservar" onclick="switchTab('reservar')">Nueva reserva</button>
-    `;
-  } else {
-    bar.innerHTML = `
-      <button class="tab" data-tab="reservar" onclick="switchTab('reservar')">Nueva reserva</button>
-      <button class="tab" data-tab="misres"   onclick="switchTab('misres')">Mis reservas</button>
-    `;
-  }
-}
-
-function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-  const map = {
-    reservar: 'panel-reservar',
-    misres:   'panel-misres',
-    admin:    'panel-admin',
-    usuarios: 'panel-usuarios'
-  };
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  const target = document.getElementById(map[tab]);
-  if (target) target.classList.add('active');
-
-  if (tab === 'reservar') { selectedRoomId = null; renderRooms(); }
-  if (tab === 'misres')   { renderMyRes(); }
-  if (tab === 'admin')    { renderStats(); renderAdminTable(); renderAdminRooms(); }
-  if (tab === 'usuarios') { closeUserForm(); renderUsersTable(); }
-}
-
-/* =============================================
-   ROOMS
-   ============================================= */
-function renderRooms() {
-  document.getElementById('rooms-grid').innerHTML = rooms.map(r => `
-    <div class="room-card${selectedRoomId === r.id ? ' sel' : ''}${r.busy ? ' dis' : ''}"
-         onclick="${r.busy ? "showToast('Sala ocupada')" : 'selRoom(' + r.id + ')'}">
-      <div class="ricon" style="background:${r.color}22; color:${r.color};">${r.icon}</div>
-      <div class="rname">${r.name}</div>
-      <div class="rcap">Hasta ${r.cap} personas</div>
-      <span class="rstatus ${r.busy ? 'sbusy' : 'sok'}">${r.busy ? 'Ocupada' : 'Disponible'}</span>
-    </div>
-  `).join('');
-}
-
-function selRoom(id) {
-  selectedRoomId = id;
-  renderRooms();
-}
-
-/* =============================================
-   RESERVATIONS — Customer
-   ============================================= */
-function submitRes() {
-  if (!selectedRoomId) { showToast('Elige una sala primero'); return; }
-
-  const name  = document.getElementById('f-name').value.trim();
-  const email = document.getElementById('f-email').value.trim();
-  const date  = document.getElementById('f-date').value;
-  const start = document.getElementById('f-start').value;
-  const end   = document.getElementById('f-end').value;
-  const att   = document.getElementById('f-att').value;
-  const notes = document.getElementById('f-notes').value.trim();
-
-  if (!name || !email || !date || !start || !end || !att) {
-    showToast('Completa todos los campos'); return;
-  }
-  if (start >= end) {
-    showToast('La hora fin debe ser mayor que la de inicio'); return;
+  if (section === "home") {
+    $("nl-inicio").classList.add("active");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  const room = rooms.find(r => r.id === selectedRoomId);
-  if (parseInt(att) > room.cap) {
-    showToast('Máximo ' + room.cap + ' personas para esta sala'); return;
+  if (section === "features") {
+    $("nl-funciones").classList.add("active");
+    document.getElementById("section-features").scrollIntoView({ behavior: "smooth" });
   }
 
-  reservations.push({
-    id: Date.now(), roomId: room.id, room: room.name, color: room.color,
-    userId: currentUser.id, userName: currentUser.name,
-    date, start, end, notes
+  if (section === "rooms") {
+    $("nl-salas").classList.add("active");
+    document.getElementById("section-rooms").scrollIntoView({ behavior: "smooth" });
+  }
+}
+// ====== ROUTER ======
+function navigate(view) {
+  const screens = ["home", "login", "main"];
+
+  screens.forEach(s => {
+    const el = document.getElementById(s + "-screen");
+    if (el) el.classList.add("hidden");
   });
 
-  showToast('¡Reserva creada con éxito!');
-  document.getElementById('f-att').value   = '';
-  document.getElementById('f-notes').value = '';
-  selectedRoomId = null;
-  renderRooms();
-  setTimeout(() => switchTab('misres'), 1100);
+  const active = document.getElementById(view + "-screen");
+  if (active) active.classList.remove("hidden");
 }
+// ====== LOGIN ======
+async function doLogin() {
+  const email = $("l-email").value;
+  const password = $("l-pass").value;
 
-function renderMyRes() {
-  const list = document.getElementById('my-res-list');
-  const mine = reservations
-    .filter(r => r.userId === currentUser.id)
-    .sort((a, b) => a.date.localeCompare(b.date));
+  const res = await fetch("api/login.php", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ email, password })
+  });
 
-  if (!mine.length) {
-    list.innerHTML = '<div class="empty">No tienes reservas próximas</div>';
+  const data = await res.json();
+
+  if (!data.success) {
+    $("l-err").classList.remove("hidden");
     return;
   }
 
-  list.innerHTML = mine.map(r => `
-    <div class="res-item">
-      <div class="rdot" style="background:${r.color}"></div>
-      <div class="rinfo">
-        <div class="rn">${r.room}</div>
-        <div class="rm">${fmtDate(r.date)}${r.notes ? ' · ' + r.notes : ''}</div>
-      </div>
-      <div class="rright">
-        <div class="rt">${r.start}–${r.end}</div>
-        <button class="cbtn" onclick="cancelRes(${r.id})">Cancelar</button>
-      </div>
-    </div>
-  `).join('');
+  currentUser = data.user;
+  localStorage.setItem("session", JSON.stringify(currentUser));
+
+  updateNavbar();
+
+  renderTabs();
+
+  navigate("main");
+}
+// ====== LOGOUT ======
+function doLogout() {
+  currentUser = null;
+  updateNavbar();
+  showScreen("home");
 }
 
-function cancelRes(id) {
-  reservations = reservations.filter(r => r.id !== id);
-  renderMyRes();
-  showToast('Reserva cancelada');
-}
+// ====== NAVBAR ======
+function updateNavbar() {
+  const loginBtn = $("nav-login-btn");
+  const userChip = $("nav-user-chip");
+  const uname = $("nav-uname");
+  const avatar = $("nav-avatar");
 
-/* =============================================
-   ADMIN — Stats
-   ============================================= */
-function renderStats() {
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('stat-grid').innerHTML = `
-    <div class="sc"><div class="sl">Total reservas</div><div class="sv">${reservations.length}</div></div>
-    <div class="sc"><div class="sl">Hoy</div><div class="sv">${reservations.filter(r => r.date === today).length}</div></div>
-    <div class="sc"><div class="sl">Salas libres</div><div class="sv">${rooms.filter(r => !r.busy).length}</div></div>
-    <div class="sc"><div class="sl">Usuarios</div><div class="sv">${USERS.length}</div></div>
-  `;
-}
+  if (currentUser) {
+    loginBtn.classList.add("hidden");
+    userChip.classList.remove("hidden");
 
-/* =============================================
-   ADMIN — Reservations table
-   ============================================= */
-function renderAdminTable() {
-  const tb = document.getElementById('admin-tbody');
-  const sorted = [...reservations].sort((a, b) => a.date.localeCompare(b.date));
+   
+    uname.textContent = `${currentUser.name} (${currentUser.role})`;
 
-  if (!sorted.length) {
-    tb.innerHTML = '<tr><td colspan="6" class="empty">Sin reservas</td></tr>';
-    return;
+   
+    avatar.textContent = currentUser.name.charAt(0).toUpperCase();
+
+    
+    avatar.classList.remove("av-admin","av-customer");
+    avatar.classList.add(
+      currentUser.role === "admin" ? "av-admin" : "av-customer"
+    );
+
+  } else {
+    loginBtn.classList.remove("hidden");
+    userChip.classList.add("hidden");
   }
-
-  tb.innerHTML = sorted.map(r => `
-    <tr>
-      <td>
-        <span style="display:inline-flex;align-items:center;gap:6px;">
-          <span style="width:8px;height:8px;border-radius:50%;background:${r.color};display:inline-block;flex-shrink:0;"></span>
-          ${r.room}
-        </span>
-      </td>
-      <td>${r.userName}</td>
-      <td>${fmtDate(r.date)}</td>
-      <td>${r.start}–${r.end}</td>
-      <td><span class="rstatus sok">Activa</span></td>
-      <td><button class="del-btn" onclick="adminDelRes(${r.id})">Eliminar</button></td>
-    </tr>
-  `).join('');
 }
-
-function adminDelRes(id) {
-  reservations = reservations.filter(r => r.id !== id);
-  renderStats();
-  renderAdminTable();
-  showToast('Reserva eliminada');
-}
-
-/* =============================================
-   ADMIN — Rooms management
-   ============================================= */
-function renderAdminRooms() {
-  document.getElementById('admin-rooms').innerHTML = rooms.map(r => `
-    <div class="room-card">
-      <div class="ricon" style="background:${r.color}22; color:${r.color};">${r.icon}</div>
-      <div class="rname">${r.name}</div>
-      <div class="rcap">Cap. ${r.cap}</div>
-      <span class="rstatus ${r.busy ? 'sbusy' : 'sok'}">${r.busy ? 'Ocupada' : 'Libre'}</span>
-      <div style="margin-top:8px;">
-        <button class="edit-btn" style="font-size:11px;padding:3px 9px;"
-                onclick="toggleRoom(${r.id})">${r.busy ? 'Liberar' : 'Bloquear'}</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-function toggleRoom(id) {
-  const r = rooms.find(x => x.id === id);
-  r.busy = !r.busy;
-  renderAdminRooms();
-  renderStats();
-  showToast(r.busy ? r.name + ' bloqueada' : r.name + ' liberada');
-}
-
-/* =============================================
-   ADMIN — Users CRUD
-   ============================================= */
-function renderUsersTable() {
-  const tb = document.getElementById('users-tbody');
-  if (!USERS.length) {
-    tb.innerHTML = '<tr><td colspan="5" class="empty">Sin usuarios</td></tr>';
-    return;
-  }
-
-  tb.innerHTML = USERS.map(u => `
-    <tr>
-      <td>
-        <span style="display:flex;align-items:center;gap:8px;">
-          <span class="avatar ${u.role === 'admin' ? 'av-admin' : 'av-customer'}"
-                style="width:28px;height:28px;font-size:10px;flex-shrink:0;">${u.initials}</span>
-          ${u.name}
-        </span>
-      </td>
-      <td style="color:#888;">${u.email}</td>
-      <td>
-        <span class="rbadge ${u.role === 'admin' ? 'b-admin' : 'b-cust'}">
-          ${u.role === 'admin' ? 'Admin' : 'Cliente'}
-        </span>
-      </td>
-      <td>${reservations.filter(r => r.userId === u.id).length}</td>
-      <td>
-        <div class="row-actions">
-          <button class="edit-btn" onclick="openEditUser(${u.id})">Editar</button>
-          ${u.id === currentUser.id ? '' : `<button class="del-btn" onclick="deleteUser(${u.id})">Eliminar</button>`}
-        </div>
-      </td>
-    </tr>
-  `).join('');
-}
-
+// ====== Usuarios ======
 function openCreateUser() {
-  editingUserId = null;
-  document.getElementById('uf-title').textContent      = 'Crear usuario';
-  document.getElementById('uf-submit-btn').textContent = 'Guardar usuario';
-  document.getElementById('uf-name').value  = '';
-  document.getElementById('uf-email').value = '';
-  document.getElementById('uf-pass').value  = '';
-  document.getElementById('uf-role').value  = 'customer';
-  document.getElementById('uf-err').classList.add('hidden');
-  document.getElementById('user-form-wrap').classList.remove('hidden');
-  document.getElementById('uf-name').focus();
-}
-
-function openEditUser(id) {
-  const u = USERS.find(x => x.id === id);
-  if (!u) return;
-  editingUserId = id;
-  document.getElementById('uf-title').textContent      = 'Editar usuario';
-  document.getElementById('uf-submit-btn').textContent = 'Actualizar usuario';
-  document.getElementById('uf-name').value  = u.name;
-  document.getElementById('uf-email').value = u.email;
-  document.getElementById('uf-pass').value  = u.pass;
-  document.getElementById('uf-role').value  = u.role;
-  document.getElementById('uf-err').classList.add('hidden');
-  document.getElementById('user-form-wrap').classList.remove('hidden');
-  document.getElementById('uf-name').focus();
+  document.getElementById("user-form-wrap")?.classList.remove("hidden");
 }
 
 function closeUserForm() {
-  editingUserId = null;
-  document.getElementById('user-form-wrap').classList.add('hidden');
+  document.getElementById("user-form-wrap")?.classList.add("hidden");
 }
+async function saveUser() {
+  const name = document.getElementById("uf-name").value;
+  const email = document.getElementById("uf-email").value;
+  const password = document.getElementById("uf-pass").value;
+  const role = document.getElementById("uf-role").value;
 
-function saveUser() {
-  const name  = document.getElementById('uf-name').value.trim();
-  const email = document.getElementById('uf-email').value.trim();
-  const pass  = document.getElementById('uf-pass').value;
-  const role  = document.getElementById('uf-role').value;
-  const errEl = document.getElementById('uf-err');
+  const res = await fetch("api/register.php", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ name, email, password, role })
+  });
 
-  if (!name || !email || !pass) {
-    errEl.textContent = 'Completa todos los campos';
-    errEl.classList.remove('hidden'); return;
-  }
-  if (pass.length < 6) {
-    errEl.textContent = 'La contraseña debe tener al menos 6 caracteres';
-    errEl.classList.remove('hidden'); return;
-  }
-  const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRx.test(email)) {
-    errEl.textContent = 'Correo no válido';
-    errEl.classList.remove('hidden'); return;
-  }
-  if (USERS.find(x => x.email === email && x.id !== editingUserId)) {
-    errEl.textContent = 'Ya existe un usuario con ese correo';
-    errEl.classList.remove('hidden'); return;
-  }
+  const data = await res.json();
 
-  if (editingUserId) {
-    const u = USERS.find(x => x.id === editingUserId);
-    u.name = name; u.email = email; u.pass = pass; u.role = role;
-    u.initials = getInitials(name);
-    if (currentUser.id === editingUserId) {
-      currentUser = u;
-      document.getElementById('h-name').textContent   = u.name;
-      document.getElementById('h-role').textContent   = u.role === 'admin' ? 'Administrador' : 'Cliente';
-      document.getElementById('h-avatar').textContent = u.initials;
-    }
-    showToast('Usuario actualizado');
+  if (data.success) {
+    alert("Usuario creado");
+    loadUsers();
   } else {
-    USERS.push({ id: nextUserId++, name, email, pass, role, initials: getInitials(name) });
-    showToast('Usuario creado: ' + name);
+    alert("Error al crear usuario");
   }
-
-  errEl.classList.add('hidden');
-  closeUserForm();
-  renderUsersTable();
-  renderStats();
-  renderQuickUsers();
 }
+async function loadUsers() {
+   if(currentUser.role !== "admin") return;
+  const res = await fetch("api/getUsers.php");
+  const users = await res.json();
 
-function deleteUser(id) {
-  if (id === currentUser.id) return;
-  const u = USERS.find(x => x.id === id);
-  USERS        = USERS.filter(x => x.id !== id);
-  reservations = reservations.filter(r => r.userId !== id);
-  renderUsersTable();
-  renderStats();
-  showToast((u ? u.name : 'Usuario') + ' eliminado');
-}
+  const tbody = document.getElementById("users-tbody");
 
-/* =============================================
-   SERVICE WORKER REGISTRATION
-   ============================================= */
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(() => console.log('Service Worker registrado'))
-      .catch(err => console.warn('SW error:', err));
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  users.forEach(u => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${u.name}</td>
+        <td>${u.email}</td>
+        <td>${u.role}</td>
+        <td>-</td>
+      </tr>
+    `;
   });
 }
+// ====== RESERVA ======
+async function submitRes() {
 
-/* =============================================
-   INIT
-   ============================================= */
-renderQuickUsers();
+  const user = JSON.parse(localStorage.getItem("session"));
+
+  const data = {
+    user_id: user.id,
+    sala: "Sala 1",
+    fecha: document.getElementById("f-date").value,
+    inicio: document.getElementById("f-start").value,
+    fin: document.getElementById("f-end").value
+  };
+
+  const res = await fetch("api/reservas.php", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(data)
+  });
+
+  const r = await res.json();
+
+  if (r.success) {
+    alert("Reserva creada");
+    loadMyReservations();
+  } else {
+    alert("Error al reservar");
+  }
+}
+async function loadMyReservations() {
+
+  const user = JSON.parse(localStorage.getItem("session"));
+
+  const res = await fetch(`api/reservas.php?user_id=${user.id}`);
+  const data = await res.json();
+
+  const container = document.getElementById("my-res-list");
+  container.innerHTML = "";
+
+  data.forEach(r => {
+    container.innerHTML += `
+      <div>
+        <b>${r.sala}</b> - ${r.fecha} (${r.hora_inicio} - ${r.hora_fin})
+      </div>
+    `;
+  });
+}
+// ====== Paneles ======
+function showPanel(p) {
+
+  ["reservar","misres","admin","usuarios"].forEach(x=>{
+    $("panel-"+x)?.classList.add("hidden");
+  });
+
+  $("panel-"+p)?.classList.remove("hidden");
+
+  if (p === "misres") loadMyReservations();
+
+  if (p === "usuarios" && currentUser.role === "admin") {
+    loadUsers();
+  }
+}
+
+// ====== TOAST ======
+function showToast(msg) {
+  const toast = $("toast");
+  toast.textContent = msg;
+  toast.style.opacity = "1";
+
+  setTimeout(() => {
+    toast.style.opacity = "0";
+  }, 2500);
+}
+function renderTabs() {
+  const tabs = $("tabs-bar");
+  tabs.innerHTML = "";
+
+  let list = [
+    {id:"reservar", label:"Reservar"},
+    {id:"misres", label:"Mis reservas"}
+  ];
+
+
+  if (currentUser.role === "admin") {
+    list.push({id:"admin", label:"Admin"});
+    list.push({id:"usuarios", label:"Usuarios"});
+  }
+
+  list.forEach(t => {
+    const btn = document.createElement("button");
+    btn.textContent = t.label;
+    btn.className = "nav-link";
+
+    btn.addEventListener("click", () => showPanel(t.id));
+
+    tabs.appendChild(btn);
+  });
+
+  showPanel("reservar");
+}
+// ====== INIT ======
+document.addEventListener("DOMContentLoaded", () => {
+  showScreen("home");
+  updateNavbar();
+});

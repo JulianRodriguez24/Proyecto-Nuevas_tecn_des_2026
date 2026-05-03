@@ -23,7 +23,7 @@ body {
   padding: 1rem 1rem 4rem;
 }
 
-.hidden { display: none !important; }
+.hidden { display: none; }
 
 /* =============================================
    TOP BAR
@@ -91,34 +91,25 @@ body {
    ============================================= */
 .tabs {
   display: flex;
-  gap: 4px;
-  margin-bottom: 1.5rem;
-  background: #ebebeb;
-  border-radius: 10px;
-  padding: 3px;
+  gap: 8px;
+  padding: 10px;
+  justify-content: center;
 }
 
-.tab {
-  flex: 1;
-  text-align: center;
-  padding: 8px;
-  font-size: 13px;
-  cursor: pointer;
-  border-radius: 8px;
-  color: #888;
+.tabs .nav-link {
+  background: #e0e0e0;
+  color: #555;
   border: none;
-  background: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
 }
 
-.tab.active {
-  background: #fff;
-  color: #1a1a1a;
-  font-weight: 500;
-  border: 1px solid #e0e0e0;
+.tabs .nav-link.active {
+  background: #1a1a1a;
+  color: #fff;
 }
-
-.panel { display: none; }
-.panel.active { display: block; }
 
 /* =============================================
    SECTION LABEL
