@@ -9,10 +9,15 @@ class Database {
         $pass = "Julian20667*";
 
         try {
+
             $pdo = new PDO(
                 "mysql:host=$host;dbname=$db;charset=utf8",
                 $user,
-                $pass
+                $pass,
+                [
+                    PDO::MYSQL_ATTR_SSL_CA => __DIR__ . "/../certs/DigiCertGlobalRootG2.crt.pem",
+                    PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false
+                ]
             );
 
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -20,9 +25,10 @@ class Database {
             return $pdo;
 
         } catch (PDOException $e) {
+
             echo json_encode([
                 "success" => false,
-                "error" => $e->getMessage()
+                "error" => "Error Azure: " . $e->getMessage()
             ]);
             exit;
         }
