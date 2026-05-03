@@ -22,6 +22,7 @@ function showScreen(screen) {
 
 // ====== NAV ======
 function navTo(section) {
+  scrollToSection(section);
   document.querySelectorAll(".nav-link").forEach(btn => btn.classList.remove("active"));
 
   if (section === "home") {
