@@ -19,6 +19,10 @@ function scrollToSection(section) {
   const el = document.getElementById("section-" + section);
   if (el) el.scrollIntoView({ behavior: "smooth" });
 }
+
+function showScreen(view){
+  navigate(view);
+}
 // ====== ESTADO ======
 let currentUser = null;
 
