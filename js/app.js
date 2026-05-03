@@ -172,34 +172,35 @@ function closeUserForm() {
 }
 
 async function saveUser() {
+
+  const name = $("uf-name").value;
+  const email = $("uf-email").value;
+  const password = $("uf-pass").value;
+  const role = $("uf-role").value;
+
+  const res = await fetch(API + "/api/register.php", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ name, email, password, role })
+  });
+
+  const text = await res.text();
+  console.log("REGISTER RAW:", text);
+
+  let data;
+
   try {
-    const name = $("uf-name").value;
-    const email = $("uf-email").value;
-    const password = $("uf-pass").value;
-    const role = $("uf-role").value;
+    data = JSON.parse(text);
+  } catch (e) {
+    alert("El backend no responde JSON (probable 404 o error PHP)");
+    return;
+  }
 
-    const res = await fetch(API + "register.php", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password, role })
-    });
-
-    const text = await res.text();
-    console.log("REGISTER RAW:", text);
-
-    const data = JSON.parse(text);
-
-    if (data.success) {
-      alert("Usuario creado");
-      loadUsers();
-      closeUserForm();
-    } else {
-      alert(data.message || "Error al crear usuario");
-    }
-
-  } catch (err) {
-    console.error(err);
-    alert("Error del servidor");
+  if (data.success) {
+    alert("Usuario creado correctamente");
+    loadUsers();
+  } else {
+    alert("Error: " + data.error);
   }
 }
 
