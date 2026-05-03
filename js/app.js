@@ -1,89 +1,108 @@
-// ================== CONFIG ==================
+// ================= CONFIG =================
 const API = "https://app-web-php-pwa-a9b3gedsd5h8hday.mexicocentral-01.azurewebsites.net/api/";
 
-// ================== ESTADO ==================
+// ================= ESTADO =================
 let currentUser = null;
 
-// ================== UTIL ==================
-function $(id){
+// ================= UTIL =================
+function $(id) {
   return document.getElementById(id);
 }
 
-// ================== SCROLL NAV ==================
-function scrollToSection(section){
+// ================= SCROLL NAV =================
+function scrollToSection(section) {
   const el = document.getElementById("section-" + section);
-  if(el) el.scrollIntoView({ behavior:"smooth" });
+  if (el) el.scrollIntoView({ behavior: "smooth" });
 }
 
-// ================== SCREENS ==================
-function showScreen(screen){
-  ["home","login","main"].forEach(s=>{
-    $(s+"-screen")?.classList.add("hidden");
+// ================= SCREENS =================
+function showScreen(screen) {
+  ["home", "login", "main"].forEach(s => {
+    $(s + "-screen")?.classList.add("hidden");
   });
 
-  $(screen+"-screen")?.classList.remove("hidden");
+  $(screen + "-screen")?.classList.remove("hidden");
 }
 
-// ================== NAV ==================
-function navTo(section){
-
+// ================= NAV =================
+function navTo(section) {
   scrollToSection(section);
 
-  document.querySelectorAll(".nav-link").forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll(".nav-link")
+    .forEach(btn => btn.classList.remove("active"));
 
-  if(section==="home"){
-    $("nl-inicio")?.classList.add("active");
-    window.scrollTo({top:0,behavior:"smooth"});
-  }
+  if (section === "home") $("nl-inicio")?.classList.add("active");
+  if (section === "features") $("nl-funciones")?.classList.add("active");
+  if (section === "rooms") $("nl-salas")?.classList.add("active");
+}
 
-  if(section==="features"){
-    $("nl-funciones")?.classList.add("active");
-  }
+// ================= NAVBAR =================
+function updateNavbar() {
+  const loginBtn = $("nav-login-btn");
+  const userChip = $("nav-user-chip");
+  const uname = $("nav-uname");
+  const avatar = $("nav-avatar");
 
-  if(section==="rooms"){
-    $("nl-salas")?.classList.add("active");
+  if (currentUser) {
+    loginBtn.classList.add("hidden");
+    userChip.classList.remove("hidden");
+
+    uname.textContent = `${currentUser.name} (${currentUser.role})`;
+    avatar.textContent = currentUser.name.charAt(0).toUpperCase();
+
+    avatar.classList.remove("av-admin", "av-customer");
+    avatar.classList.add(
+      currentUser.role === "admin" ? "av-admin" : "av-customer"
+    );
+  } else {
+    loginBtn.classList.remove("hidden");
+    userChip.classList.add("hidden");
   }
 }
 
-// ================== LOGIN ==================
-async function doLogin(){
-
+// ================= LOGIN =================
+async function doLogin() {
   const email = $("l-email").value;
   const password = $("l-pass").value;
 
-  try{
-
-    const res = await fetch(API + "login.php",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({email,password})
+  try {
+    const res = await fetch(API + "login.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
     });
 
-    const data = await res.json();
-    console.log("LOGIN:", data);
+    const text = await res.text();
 
-    if(!data.success){
-      alert(data.error || "Error login");
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.error("Respuesta no JSON:", text);
+      alert("Error del servidor");
+      return;
+    }
+
+    if (!data.success) {
+      alert(data.message || "Credenciales incorrectas");
       return;
     }
 
     currentUser = data.user;
-
-    // 🔥 guardar sesión
     localStorage.setItem("session", JSON.stringify(currentUser));
 
     updateNavbar();
     renderTabs();
     showScreen("main");
 
-  }catch(err){
+  } catch (err) {
     console.error(err);
     alert("Error de conexión");
   }
 }
 
-// ================== LOGOUT ==================
-function doLogout(){
+// ================= LOGOUT =================
+function doLogout() {
   currentUser = null;
   localStorage.removeItem("session");
 
@@ -91,204 +110,194 @@ function doLogout(){
   showScreen("home");
 }
 
-// ================== NAVBAR ==================
-function updateNavbar(){
-
-  const loginBtn = $("nav-login-btn");
-  const userChip = $("nav-user-chip");
-  const uname = $("nav-uname");
-  const avatar = $("nav-avatar");
-
-  if(currentUser){
-
-    loginBtn?.classList.add("hidden");
-    userChip?.classList.remove("hidden");
-
-    uname.textContent = `${currentUser.name} (${currentUser.role})`;
-
-    avatar.textContent = currentUser.name.charAt(0).toUpperCase();
-
-    avatar.classList.remove("av-admin","av-customer");
-    avatar.classList.add(
-      currentUser.role === "admin" ? "av-admin" : "av-customer"
-    );
-
-  }else{
-    loginBtn?.classList.remove("hidden");
-    userChip?.classList.add("hidden");
-  }
-}
-
-// ================== TABS ==================
-function renderTabs(){
-
+// ================= TABS =================
+function renderTabs() {
   const tabs = $("tabs-bar");
-  if(!tabs) return;
-
-  tabs.innerHTML="";
+  tabs.innerHTML = "";
 
   let list = [
-    {id:"reservar",label:"Reservar"},
-    {id:"misres",label:"Mis reservas"}
+    { id: "reservar", label: "Reservar" },
+    { id: "misres", label: "Mis reservas" }
   ];
 
-  if(currentUser?.role === "admin"){
-    list.push({id:"admin",label:"Admin"});
-    list.push({id:"usuarios",label:"Usuarios"});
+  if (currentUser.role === "admin") {
+    list.push({ id: "admin", label: "Admin" });
+    list.push({ id: "usuarios", label: "Usuarios" });
   }
 
-  list.forEach(t=>{
+  list.forEach(t => {
     const btn = document.createElement("button");
     btn.textContent = t.label;
     btn.className = "nav-link";
 
-    btn.addEventListener("click",()=>showPanel(t.id));
-
+    btn.addEventListener("click", () => showPanel(t.id));
     tabs.appendChild(btn);
   });
 
   showPanel("reservar");
 }
 
-// ================== PANELES ==================
-function showPanel(p){
-
-  ["reservar","misres","admin","usuarios"].forEach(x=>{
-    $("panel-"+x)?.classList.add("hidden");
+// ================= PANEL =================
+function showPanel(panel) {
+  ["reservar", "misres", "admin", "usuarios"].forEach(p => {
+    $("panel-" + p)?.classList.add("hidden");
   });
 
-  $("panel-"+p)?.classList.remove("hidden");
+  $("panel-" + panel)?.classList.remove("hidden");
 
-  if(p==="misres") loadMyReservations();
-
-  if(p==="usuarios") loadUsers();
+  if (panel === "misres") loadMyReservations();
+  if (panel === "usuarios") loadUsers();
 }
 
-// ================== USUARIOS ==================
-function openCreateUser(){
+// ================= USUARIOS =================
+function openCreateUser() {
   $("user-form-wrap")?.classList.remove("hidden");
 }
 
-function closeUserForm(){
+function closeUserForm() {
   $("user-form-wrap")?.classList.add("hidden");
 }
 
-async function saveUser(){
-
+async function saveUser() {
   const name = $("uf-name").value;
   const email = $("uf-email").value;
   const password = $("uf-pass").value;
   const role = $("uf-role").value;
 
-  const res = await fetch(API + "register.php",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({name,email,password,role})
-  });
+  try {
+    const res = await fetch(API + "register.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password, role })
+    });
 
-  const data = await res.json();
+    const text = await res.text();
 
-  if(data.success){
-    alert("Usuario creado");
-    closeUserForm();
-    loadUsers();
-  }else{
-    alert(data.error || "Error al crear usuario");
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.error("Respuesta no JSON:", text);
+      alert("Error del servidor");
+      return;
+    }
+
+    if (data.success) {
+      alert("Usuario creado");
+      closeUserForm();
+      loadUsers();
+    } else {
+      alert(data.message || "Error al crear usuario");
+    }
+
+  } catch (err) {
+    console.error(err);
+    alert("Error de conexión");
   }
 }
 
-async function loadUsers(){
+async function loadUsers() {
+  if (!currentUser || currentUser.role !== "admin") return;
 
-  if(!currentUser || currentUser.role !== "admin") return;
+  try {
+    const res = await fetch(API + "getUsers.php");
+    const users = await res.json();
 
-  const res = await fetch(API + "getUsers.php");
-  const users = await res.json();
+    const tbody = $("users-tbody");
+    tbody.innerHTML = "";
 
-  const tbody = $("users-tbody");
-  if(!tbody) return;
+    users.forEach(u => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${u.name}</td>
+          <td>${u.email}</td>
+          <td>${u.role}</td>
+          <td>-</td>
+        </tr>
+      `;
+    });
 
-  tbody.innerHTML="";
-
-  users.forEach(u=>{
-    tbody.innerHTML += `
-      <tr>
-        <td>${u.name}</td>
-        <td>${u.email}</td>
-        <td>${u.role}</td>
-        <td>-</td>
-      </tr>
-    `;
-  });
+  } catch (err) {
+    console.error(err);
+  }
 }
 
-// ================== RESERVAS ==================
-async function submitRes(){
-
-  if(!currentUser) return alert("Debes iniciar sesión");
+// ================= RESERVAS =================
+async function submitRes() {
+  const user = JSON.parse(localStorage.getItem("session"));
 
   const data = {
-    user_id: currentUser.id,
+    user_id: user.id,
     sala: "Sala 1",
     fecha: $("f-date").value,
     inicio: $("f-start").value,
     fin: $("f-end").value
   };
 
-  const res = await fetch(API + "reservas.php",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify(data)
-  });
+  try {
+    const res = await fetch(API + "reservas.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
 
-  const r = await res.json();
+    const r = await res.json();
 
-  if(r.success){
-    alert("Reserva creada");
-    loadMyReservations();
-  }else{
-    alert("Error al reservar");
+    if (r.success) {
+      alert("Reserva creada");
+      loadMyReservations();
+    } else {
+      alert("Error al reservar");
+    }
+
+  } catch (err) {
+    console.error(err);
   }
 }
 
-async function loadMyReservations(){
+async function loadMyReservations() {
+  const user = JSON.parse(localStorage.getItem("session"));
 
-  if(!currentUser) return;
+  try {
+    const res = await fetch(API + `reservas.php?user_id=${user.id}`);
+    const data = await res.json();
 
-  const res = await fetch(API + `reservas.php?user_id=${currentUser.id}`);
-  const data = await res.json();
+    const container = $("my-res-list");
+    container.innerHTML = "";
 
-  const container = $("my-res-list");
-  if(!container) return;
+    data.forEach(r => {
+      container.innerHTML += `
+        <div>
+          <b>${r.sala}</b> - ${r.fecha} (${r.hora_inicio} - ${r.hora_fin})
+        </div>
+      `;
+    });
 
-  container.innerHTML="";
-
-  data.forEach(r=>{
-    container.innerHTML += `
-      <div>
-        <b>${r.sala}</b> - ${r.fecha} (${r.hora_inicio} - ${r.hora_fin})
-      </div>
-    `;
-  });
+  } catch (err) {
+    console.error(err);
+  }
 }
 
-// ================== INIT ==================
-document.addEventListener("DOMContentLoaded",()=>{
+// ================= INIT =================
+document.addEventListener("DOMContentLoaded", () => {
 
-  // NAV botones
-  $("nl-inicio")?.addEventListener("click",()=>navTo("home"));
-  $("nl-funciones")?.addEventListener("click",()=>navTo("features"));
-  $("nl-salas")?.addEventListener("click",()=>navTo("rooms"));
+  // NAV BOTONES
+  $("nl-inicio")?.addEventListener("click", () => navTo("home"));
+  $("nl-funciones")?.addEventListener("click", () => navTo("features"));
+  $("nl-salas")?.addEventListener("click", () => navTo("rooms"));
 
-  // sesión persistente
+  // LOGIN BTN
+  $("nav-login-btn")?.addEventListener("click", () => showScreen("login"));
+
+  // SESSION
   const session = localStorage.getItem("session");
 
-  if(session){
+  if (session) {
     currentUser = JSON.parse(session);
     updateNavbar();
     renderTabs();
     showScreen("main");
-  }else{
+  } else {
     showScreen("home");
   }
-
 });
