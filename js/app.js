@@ -1,6 +1,24 @@
 const API = "https://app-web-php-pwa-a9b3gedsd5h8hday.mexicocentral-01.azurewebsites.net";
 const data = await res.json();
 console.log("RESPUESTA:", data);
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  document.getElementById("nl-inicio")
+    ?.addEventListener("click", () => scrollToSection("home"));
+
+  document.getElementById("nl-funciones")
+    ?.addEventListener("click", () => scrollToSection("features"));
+
+  document.getElementById("nl-salas")
+    ?.addEventListener("click", () => scrollToSection("rooms"));
+
+});
+
+function scrollToSection(section) {
+  const el = document.getElementById("section-" + section);
+  if (el) el.scrollIntoView({ behavior: "smooth" });
+}
 // ====== ESTADO ======
 let currentUser = null;
 
